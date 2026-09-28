@@ -1,9 +1,10 @@
-import { AlertTriangle, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
-import { useState } from 'react'
+import { AlertTriangle, ArrowRight, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { useMemo, useState } from 'react'
 import { usePlanView } from '../app/planView'
 import { useStore } from '../app/store'
 import { PaperLegend } from '../components/review/PaperLegend'
+import { ChangesPanel, ReplanPanel } from '../components/review/ReplanPanel'
 import { RoomList } from '../components/review/RoomList'
 import { RoomsOverview } from '../components/review/RoomsOverview'
 import { SeatDetails } from '../components/review/SeatDetails'
@@ -20,6 +21,11 @@ export function ReviewStep() {
   const [roomId, setRoomIdRaw] = useState<string | null>(null)
   const [active, setActive] = useState<number | null>(null)
   const [highlight, setHighlight] = useState<number | null>(null)
+  const [changing, setChanging] = useState(false)
+  const moved = useMemo(
+    () => new Set([...(state.lastDiff?.moved ?? []), ...(state.lastDiff?.added ?? [])].map((m) => m.roll)),
+    [state.lastDiff],
+  )
   const setRoomId = (id: string | null) => {
     setRoomIdRaw(id)
     setActive(null)
@@ -42,6 +48,15 @@ export function ReviewStep() {
             {sessionLabel(plan.session)} · {RULE_BY_ID[plan.rule].label} rule ({RULE_BY_ID[plan.rule].short})
           </p>
         </div>
+        <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setChanging((v) => !v)}
+          aria-expanded={changing}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold hover:border-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:bg-slate-900"
+        >
+          <RefreshCw className="h-4 w-4" aria-hidden="true" /> Make a change
+        </button>
         <button
           type="button"
           onClick={() => dispatch({ type: 'goto', step: 'download' })}
@@ -49,7 +64,14 @@ export function ReviewStep() {
         >
           Download printouts <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </button>
+        </div>
       </div>
+
+      <AnimatePresence initial={false}>{changing && <ReplanPanel plan={plan} onClose={() => setChanging(false)} />}</AnimatePresence>
+      <ChangesPanel
+        key={plan.revision ?? 0}
+        onShow={(name) => setRoomId(view.rooms.find((r) => r.room.name === name)?.room.id ?? null)}
+      />
 
       <SummaryCards view={view} checkDelayMs={waveMs} />
 
@@ -146,7 +168,7 @@ export function ReviewStep() {
                 </div>
               </div>
               <div className={`grid gap-5 ${room.room.cols > 8 ? '' : 'xl:grid-cols-[1fr_17rem]'}`}>
-                <SeatGrid view={room} paperColour={view.paperColour} active={active} onActive={setActive} highlight={highlight} />
+                <SeatGrid view={room} paperColour={view.paperColour} active={active} onActive={setActive} highlight={highlight} moved={moved} />
                 <div className={room.room.cols > 8 ? 'grid gap-4 md:grid-cols-2' : 'space-y-4'}>
                   <div className="rounded-xl bg-slate-50 p-3.5 dark:bg-slate-800/50">
                     <h3 className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">Papers in this room</h3>

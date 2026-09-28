@@ -1,4 +1,5 @@
 import { createContext, useContext, type Dispatch } from 'react'
+import type { PlanDiff } from '../lib/engine/replan'
 import type { Progress, Infeasible } from '../lib/engine/solve'
 import type { Issue } from '../lib/io/parse'
 import type { Method, Plan, Room, Session, Strictness, Student } from '../lib/types'
@@ -34,6 +35,8 @@ export interface AppState {
   progress: Progress | null
   plan: Plan | null
   problem: Infeasible | null
+  /** What the last re-plan changed (for the "What changed" panel and seat animations). */
+  lastDiff: PlanDiff | null
 }
 
 export type Action =
@@ -48,6 +51,7 @@ export type Action =
   | { type: 'solve-done'; plan: Plan }
   | { type: 'solve-failed'; problem: Infeasible }
   | { type: 'plan'; plan: Plan }
+  | { type: 'replanned'; plan: Plan; diff: PlanDiff }
   | { type: 'reset' }
 
 function today(): string {
@@ -68,6 +72,7 @@ export const initialState: AppState = {
   progress: null,
   plan: null,
   problem: null,
+  lastDiff: null,
 }
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -89,7 +94,9 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'solve-progress':
       return { ...state, progress: action.progress }
     case 'solve-done':
-      return { ...state, status: 'done', plan: action.plan, step: 'review', progress: null }
+      return { ...state, status: 'done', plan: action.plan, step: 'review', progress: null, lastDiff: null }
+    case 'replanned':
+      return { ...state, plan: action.plan, students: action.plan.students, rooms: action.plan.rooms, lastDiff: action.diff }
     case 'solve-failed':
       return { ...state, status: 'failed', problem: action.problem, progress: null }
     case 'plan':
@@ -105,6 +112,7 @@ export function reducer(state: AppState, action: Action): AppState {
         roomsFile: { fileName: 'from plan file', count: action.plan.rooms.length, errors: [], warnings: [] },
         status: 'done',
         problem: null,
+        lastDiff: null,
         step: 'review',
       }
     case 'reset':
