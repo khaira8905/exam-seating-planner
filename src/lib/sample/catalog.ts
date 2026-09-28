@@ -47,15 +47,15 @@ export const COURSE_GROUPS: CourseGroup[] = [
   { course: 'CSE', semester: 3, paper: 'CS301', paperName: 'Data Structures', weight: 1.4 },
   { course: 'CSE', semester: 5, paper: 'CS501', paperName: 'Operating Systems', weight: 1.3 },
   { course: 'CSE', semester: 7, paper: 'CS701', paperName: 'Machine Learning', weight: 1.2 },
-  { course: 'IT', semester: 3, paper: 'IT301', paperName: 'Computer Networks', weight: 0.8 },
-  { course: 'IT', semester: 5, paper: 'IT501', paperName: 'Cloud Computing', weight: 0.7 },
+  { course: 'IT', semester: 3, paper: 'CN301', paperName: 'Computer Networks', weight: 0.8 },
+  { course: 'IT', semester: 5, paper: 'CC501', paperName: 'Cloud Computing', weight: 0.7 },
   { course: 'ECE', semester: 3, paper: 'EC301', paperName: 'Signals and Systems', weight: 1.0 },
   { course: 'ECE', semester: 5, paper: 'EC501', paperName: 'Digital Communication', weight: 1.0 },
   { course: 'ECE', semester: 7, paper: 'EC701', paperName: 'VLSI Design', weight: 0.8 },
   { course: 'EEE', semester: 3, paper: 'EE301', paperName: 'Electrical Machines', weight: 0.6 },
   { course: 'EEE', semester: 5, paper: 'EE501', paperName: 'Power Systems', weight: 0.6 },
-  { course: 'ME', semester: 3, paper: 'ME301', paperName: 'Thermodynamics', weight: 0.8 },
-  { course: 'ME', semester: 5, paper: 'ME501', paperName: 'Machine Design', weight: 0.7 },
+  { course: 'ME', semester: 3, paper: 'TD301', paperName: 'Thermodynamics', weight: 0.8 },
+  { course: 'ME', semester: 5, paper: 'MD501', paperName: 'Machine Design', weight: 0.7 },
   { course: 'CE', semester: 3, paper: 'CV301', paperName: 'Structural Analysis', weight: 0.6 },
   { course: 'CE', semester: 5, paper: 'CV501', paperName: 'Geotechnical Engineering', weight: 0.5 },
   { course: 'BBA', semester: 1, paper: 'BB101', paperName: 'Principles of Management', weight: 1.1 },
@@ -71,7 +71,7 @@ export const COURSE_GROUPS: CourseGroup[] = [
   { course: 'MBA', semester: 3, paper: 'MB301', paperName: 'Strategic Management', weight: 0.8 },
   { course: 'BSC', semester: 3, paper: 'BS301', paperName: 'Organic Chemistry', weight: 0.6 },
   { course: 'BSC', semester: 5, paper: 'BS501', paperName: 'Quantum Mechanics', weight: 0.5 },
-  { course: 'BA', semester: 3, paper: 'BA301', paperName: 'Indian Economy', weight: 0.6 },
+  { course: 'BA', semester: 3, paper: 'HU301', paperName: 'Indian Economy', weight: 0.6 },
 ]
 
 /** Room shapes found in a typical Indian college block. */
