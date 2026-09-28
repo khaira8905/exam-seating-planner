@@ -87,7 +87,7 @@ export function studentsTemplate(): ArrayBuffer {
     ]),
     'Instructions',
   )
-  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer
+  return XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: true }) as ArrayBuffer
 }
 
 export function roomsTemplate(): ArrayBuffer {
@@ -112,7 +112,7 @@ export function roomsTemplate(): ArrayBuffer {
     ]),
     'Instructions',
   )
-  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer
+  return XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: true }) as ArrayBuffer
 }
 
 /** Exports the (generated) sample data as two Excel files so users can inspect them. */
@@ -120,7 +120,7 @@ export function studentsToWorkbook(students: Student[]): ArrayBuffer {
   const wb = XLSX.utils.book_new()
   const rows = students.map((s) => [s.roll, s.name, s.course, s.paper, s.paperName ?? '', s.specialNeeds ?? ''])
   XLSX.utils.book_append_sheet(wb, dataSheet(STUDENT_COLUMNS, rows), 'Students')
-  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer
+  return XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: true }) as ArrayBuffer
 }
 
 export function roomsToWorkbook(rooms: Room[]): ArrayBuffer {
@@ -135,5 +135,5 @@ export function roomsToWorkbook(rooms: Room[]): ArrayBuffer {
     r.floor === undefined ? '' : r.floor === 0 ? 'G' : String(r.floor),
   ])
   XLSX.utils.book_append_sheet(wb, dataSheet(ROOM_COLUMNS, rows), 'Rooms')
-  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer
+  return XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: true }) as ArrayBuffer
 }
