@@ -1,6 +1,7 @@
 /** Saves bytes/text as a file on the user's computer (no network involved). */
-export function saveFile(fileName: string, data: BlobPart, mime = 'application/octet-stream') {
-  const blob = data instanceof Blob ? data : new Blob([data], { type: mime })
+export function saveFile(fileName: string, data: Blob | ArrayBuffer | Uint8Array | string, mime = 'application/octet-stream') {
+  const part = data instanceof Uint8Array ? (data.slice().buffer as ArrayBuffer) : data
+  const blob = part instanceof Blob ? part : new Blob([part], { type: mime })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

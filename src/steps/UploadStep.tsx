@@ -1,5 +1,5 @@
-import { ArrowRight, Download, FolderOpen, Lock, Sparkles } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowRight, Download, FolderOpen, History, Lock, Sparkles } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../app/store'
 import { useSolver } from '../app/useSolver'
 import { DropZone } from '../components/DropZone'
@@ -8,12 +8,23 @@ import { fmt } from '../lib/format'
 import { generateSample, SAMPLE_PRESETS } from '../lib/sample/generate'
 import type { Room, Student } from '../lib/types'
 import { readPlanFile } from '../lib/io/planFile'
+import { forgetSavedPlan, loadLatestPlan, type SavedPlan } from '../lib/storage'
+import { sessionLabel } from '../lib/format'
 
 export function UploadStep() {
   const { state, dispatch } = useStore()
   const { run } = useSolver()
   const [busy, setBusy] = useState<'students' | 'rooms' | null>(null)
   const [openError, setOpenError] = useState<string | null>(null)
+  const [saved, setSaved] = useState<SavedPlan | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    void loadLatestPlan().then((p) => alive && setSaved(p))
+    return () => {
+      alive = false
+    }
+  }, [])
 
   async function readFile(kind: 'students' | 'rooms', file: File) {
     setBusy(kind)
@@ -86,6 +97,36 @@ export function UploadStep() {
 
   return (
     <div className="space-y-8">
+      {saved && !state.plan && (
+        <section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900">
+          <p className="flex items-start gap-2 text-sm">
+            <History className="mt-0.5 h-4 w-4 shrink-0 text-teal-700 dark:text-teal-400" aria-hidden="true" />
+            <span>
+              <strong className="font-semibold">Continue where you left off?</strong> Your last plan ({fmt(saved.plan.stats.students)} students,{' '}
+              {sessionLabel(saved.plan.session)}) is saved in this browser only.
+            </span>
+          </p>
+          <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={() => dispatch({ type: 'plan', plan: saved.plan })}
+              className="rounded-lg bg-teal-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:bg-teal-500 dark:text-slate-950"
+            >
+              Open it
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void forgetSavedPlan()
+                setSaved(null)
+              }}
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-teal-600 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              Forget it
+            </button>
+          </div>
+        </section>
+      )}
       <section className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-teal-50/60 p-6 sm:p-8 dark:border-slate-800 dark:from-slate-900 dark:to-teal-950/30">
         <h1 className="max-w-2xl text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
           Clash-free exam seating plans in seconds, not days.
