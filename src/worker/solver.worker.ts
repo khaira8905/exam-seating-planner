@@ -6,6 +6,7 @@
 import highsLoader from 'highs'
 import wasmUrl from 'highs/runtime?url'
 import type { HighsLike } from '../lib/engine/milp'
+import { replan } from '../lib/engine/replan'
 import { solve } from '../lib/engine/solve'
 import type { WorkerRequest, WorkerResponse } from './protocol'
 
@@ -23,9 +24,15 @@ const highsReady: Promise<HighsLike | null> = highsLoader({ locateFile: () => wa
 highsReady.then((h) => post({ id: 0, type: 'ready', highs: h !== null }))
 
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
-  const { id, req } = e.data
+  const msg = e.data
+  const { id } = msg
   try {
     const highs = await highsReady
+    if (msg.type === 'replan') {
+      post({ id, type: 'replanned', result: await replan(msg.plan, msg.changes, { highs: highs ?? undefined }) })
+      return
+    }
+    const req = msg.req
     const outcome = await solve(req, {
       highs: highs ?? undefined,
       onProgress: (progress) => post({ id, type: 'progress', progress }),

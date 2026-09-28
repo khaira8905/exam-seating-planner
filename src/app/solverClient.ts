@@ -1,8 +1,10 @@
+import { replan, type Change, type ReplanResult } from '../lib/engine/replan'
 import { solve, type Progress, type SolveOutcome, type SolveRequest } from '../lib/engine/solve'
+import type { Plan } from '../lib/types'
 import type { WorkerRequest, WorkerResponse } from '../worker/protocol'
 
 type Pending = {
-  resolve: (o: SolveOutcome) => void
+  resolve: (o: SolveOutcome | ReplanResult) => void
   reject: (e: Error) => void
   onProgress?: (p: Progress) => void
 }
@@ -37,6 +39,7 @@ class SolverClient {
       else {
         this.pending.delete(msg.id)
         if (msg.type === 'done') p.resolve(msg.outcome)
+        else if (msg.type === 'replanned') p.resolve(msg.result)
         else p.reject(new Error(msg.message))
       }
     }
@@ -54,10 +57,20 @@ class SolverClient {
       // No worker support: run the pattern method on the main thread.
       return solve({ ...req, method: 'pattern' }, { onProgress })
     }
+    return this.send<SolveOutcome>({ id: 0, type: 'solve', req }, onProgress)
+  }
+
+  replan(plan: Plan, changes: Change[]): Promise<ReplanResult> {
+    this.start()
+    if (!this.worker) return replan(plan, changes)
+    return this.send<ReplanResult>({ id: 0, type: 'replan', plan, changes })
+  }
+
+  private send<T>(msg: WorkerRequest, onProgress?: (p: Progress) => void): Promise<T> {
     const id = this.nextId++
-    return new Promise<SolveOutcome>((resolve, reject) => {
-      this.pending.set(id, { resolve, reject, onProgress })
-      this.worker!.postMessage({ id, type: 'solve', req } satisfies WorkerRequest)
+    return new Promise<T>((resolve, reject) => {
+      this.pending.set(id, { resolve: resolve as Pending['resolve'], reject, onProgress })
+      this.worker!.postMessage({ ...msg, id } satisfies WorkerRequest)
     })
   }
 }

@@ -20,7 +20,7 @@ export function SummaryCards({ view, checkDelayMs }: { view: PlanView; checkDela
       <Card icon={<Users className="h-4 w-4" />} label="Students" value={fmt(s.students)} note={`${fmt(new Set(plan.students.map((x) => x.paper)).size)} papers`} />
       <Card icon={<DoorOpen className="h-4 w-4" />} label="Rooms used" value={fmt(s.roomsUsed)} note={`of ${fmt(plan.rooms.length)} available`} />
       <Card icon={<Armchair className="h-4 w-4" />} label="Empty seats" value={fmt(s.emptySeats)} note={`${fmt(s.usableSeats)} usable in rooms used`} />
-      <ClashCard key={plan.id} clashes={check.clashes.length + check.problems.length} pairs={check.checkedPairs} ruleLabel={RULE_BY_ID[plan.rule].label} delayMs={checkDelayMs} />
+      <ClashCard key={`${plan.id}-${plan.revision ?? 0}`} clashes={check.clashes.length + check.problems.length} pairs={check.checkedPairs} ruleLabel={RULE_BY_ID[plan.rule].label} delayMs={checkDelayMs} />
       <Card icon={<Clock className="h-4 w-4" />} label="Time taken" value={formatMs(s.timeMs)} note={methodNote} />
     </dl>
   )
