@@ -11,7 +11,8 @@ import { checkPlan } from './checker'
 import type { Infeasible } from './explain'
 import { buildGrid } from './grid'
 import { solveRoom, type HighsLike } from './milp'
-import { fillFromPieces, type SeatPapers } from './pattern'
+import { explainRoom } from './explain'
+import { fillFromPieces, patternFill, type SeatPapers } from './pattern'
 import { placeStudents } from './place'
 
 export type { Infeasible } from './explain'
@@ -104,20 +105,33 @@ export async function solve(req: SolveRequest, opts: SolveOptions = {}): Promise
   const gridById = new Map(grids.map((g) => [g.room.id, g]))
   const byMethod = { optimised: 0, pattern: 0 }
   for (let ri = 0; ri < allocation.rooms.length; ri++) {
-    const { grid: g, pieces } = allocation.rooms[ri]
+    const { grid: g, pieces, free } = allocation.rooms[ri]
     opts.onProgress?.({ phase: 'seating', done: ri, total: allocation.rooms.length, room: g.room.name })
     const groups = perPiece[ri]
     const withSpecial = pieces.map((p, i) => ({ ...p, special: groups[i].filter((s) => s.specialNeeds).length }))
-    // The allocator's class plan is always clash-free: it is the pattern result,
-    // the optimiser's starting point, and the fallback if HiGHS fails.
-    const pattern = fillFromPieces(g, withSpecial)
-    let sp: SeatPapers = pattern
+    // Normally the allocator's class plan is clash-free by construction: it is the
+    // pattern result, the optimiser's warm start and the fallback if HiGHS fails.
+    // In "free" rooms (tight fallback) only the solvers can decide.
+    const pattern = free ? patternFill(g, withSpecial) : fillFromPieces(g, withSpecial)
+    let sp: SeatPapers | null = pattern
     let optimised = false
-    if (method === 'optimised' && opts.highs) {
-      const res = solveRoom(opts.highs, g, withSpecial, { timeLimit: opts.roomTimeLimit, start: pattern })
+    if ((method === 'optimised' || free) && opts.highs) {
+      const res = solveRoom(opts.highs, g, withSpecial, { timeLimit: opts.roomTimeLimit, start: pattern ?? undefined })
       if (res.status === 'optimal' || res.status === 'feasible') {
         sp = res.seatPapers
         optimised = true
+      }
+    }
+    if (!sp) {
+      return {
+        ok: false,
+        problem: {
+          title: `Room ${g.room.name} can't be seated clash-free`,
+          reasons: explainRoom(g, withSpecial).length
+            ? explainRoom(g, withSpecial)
+            : [`The papers sent to Room ${g.room.name} (${withSpecial.map((d) => `${d.paper} × ${d.count}`).join(', ')}) can't be arranged without two students of the same paper sitting together.`],
+          suggestions: ['Add a room.', 'Or relax the rule by one level.'],
+        },
       }
     }
     if (optimised) byMethod.optimised++

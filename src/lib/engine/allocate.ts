@@ -25,6 +25,11 @@ export interface Piece {
 export interface RoomAllocation {
   grid: RoomGrid
   pieces: Piece[]
+  /**
+   * True when papers were NOT confined to one seat class each (fallback for
+   * tight rooms): the seat solver must then decide, and may prove it impossible.
+   */
+  free?: boolean
 }
 
 export type AllocationResult =
@@ -186,6 +191,10 @@ export function allocate(grids: RoomGrid[], students: Student[]): AllocationResu
     const rooms = fillRooms(sorted, papers, total)
     if (rooms) return { ok: true, rooms, warnings: specialWarnings(rooms, papers) }
   }
+  // Fallback for tight sessions: split counts per room without the one-class
+  // restriction and let the exact seat solver (HiGHS) decide.
+  const free = freeLayout([...usable].sort(roomOrder), papers, total)
+  if (free) return { ok: true, rooms: free, warnings: [] }
   return {
     ok: false,
     problem: {
@@ -196,6 +205,30 @@ export function allocate(grids: RoomGrid[], students: Student[]): AllocationResu
       suggestions: ['Add one more room.', 'Or relax the rule by one level (e.g. Strict → Basic).'],
     },
   }
+}
+
+/** Largest-paper-first packing with only "≤ per-paper capacity" and "≤ seats" per room. */
+function freeLayout(rooms: RoomGrid[], papers: PaperInfo[], total: number): RoomAllocation[] | null {
+  const targets = apportion(total, rooms.map((g) => g.seats.length))
+  const remaining = new Map(papers.map((p) => [p.paper, p.count]))
+  const out: RoomAllocation[] = []
+  let carry = 0
+  rooms.forEach((g, r) => {
+    let left = Math.min(g.seats.length, targets[r] + carry)
+    const cap = paperCapacity(g)
+    const pieces: Piece[] = []
+    for (const p of [...remaining.entries()].sort((a, b) => b[1] - a[1])) {
+      if (left <= 0) break
+      const take = Math.min(p[1], cap, left)
+      if (take <= 0) continue
+      pieces.push({ paper: p[0], count: take, classIndex: -1 })
+      remaining.set(p[0], p[1] - take)
+      left -= take
+    }
+    carry = left
+    if (pieces.length) out.push({ grid: g, pieces, free: true })
+  })
+  return [...remaining.values()].every((n) => n === 0) ? out : null
 }
 
 function specialWarnings(rooms: RoomAllocation[], papers: PaperInfo[]): string[] {

@@ -75,4 +75,8 @@ export interface Plan {
   roomOrder: string[]
   stats: PlanStats
   warnings: string[]
+  /** How many times this plan has been re-planned after changes (0/undefined = original). */
+  revision?: number
+  /** Human-readable list of changes applied by re-planning. */
+  changes?: string[]
 }
