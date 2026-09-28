@@ -6,8 +6,8 @@ export function Stepper() {
   const reachable = reachableSteps(state)
   const currentIndex = STEPS.indexOf(state.step)
   return (
-    <nav aria-label="Progress" className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
-      <ol className="flex items-center gap-1 overflow-x-auto sm:gap-2">
+    <nav aria-label="Progress" className="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6">
+      <ol className="flex items-center gap-1 overflow-x-auto pb-1 sm:justify-center sm:gap-2">
         {STEPS.map((step, i) => {
           const active = step === state.step
           const done = i < currentIndex && reachable.has(step)
