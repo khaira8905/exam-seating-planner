@@ -28,7 +28,7 @@ function workbook(sheets: [string, XLSX.WorkSheet][]): Uint8Array {
   const wb = XLSX.utils.book_new()
   const used = new Set<string>()
   for (const [name, ws] of sheets) XLSX.utils.book_append_sheet(wb, ws, sheetName(name, used))
-  return new Uint8Array(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer)
+  return new Uint8Array(XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: true }) as ArrayBuffer)
 }
 
 export function seatingChartsXlsx(view: PlanView): Uint8Array {

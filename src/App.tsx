@@ -1,4 +1,5 @@
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
+import { useEffect } from 'react'
 import { StoreProvider } from './app/StoreProvider'
 import { useStore } from './app/store'
 import { Header } from './components/Header'
@@ -28,6 +29,9 @@ function StepContent({ step }: { step: ReturnType<typeof useStore>['state']['ste
 /** Smooth, short transition between steps (instant with prefers-reduced-motion). */
 function CurrentStep() {
   const { state } = useStore()
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+  }, [state.step])
   return (
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
