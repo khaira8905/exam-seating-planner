@@ -10,6 +10,7 @@ import { allocate, type RoomAllocation } from './allocate'
 import { checkPlan } from './checker'
 import type { Infeasible } from './explain'
 import { buildGrid } from './grid'
+import { solveRoom, type HighsLike } from './milp'
 import { fillFromPieces, type SeatPapers } from './pattern'
 import { placeStudents } from './place'
 
@@ -34,6 +35,10 @@ export type SolveOutcome = { ok: true; plan: Plan } | { ok: false; problem: Infe
 
 export interface SolveOptions {
   onProgress?: (p: Progress) => void
+  /** A loaded HiGHS instance. Required for the optimised method; without it rooms use the pattern method. */
+  highs?: HighsLike
+  /** Per-room time limit for HiGHS, in seconds. */
+  roomTimeLimit?: number
 }
 
 /** Students grouped by paper, each group in roll-number order. */
@@ -97,12 +102,26 @@ export async function solve(req: SolveRequest, opts: SolveOptions = {}): Promise
   const roomOrder: string[] = []
   const warnings = [...allocation.warnings]
   const gridById = new Map(grids.map((g) => [g.room.id, g]))
+  const byMethod = { optimised: 0, pattern: 0 }
   for (let ri = 0; ri < allocation.rooms.length; ri++) {
     const { grid: g, pieces } = allocation.rooms[ri]
     opts.onProgress?.({ phase: 'seating', done: ri, total: allocation.rooms.length, room: g.room.name })
     const groups = perPiece[ri]
     const withSpecial = pieces.map((p, i) => ({ ...p, special: groups[i].filter((s) => s.specialNeeds).length }))
-    const sp: SeatPapers = fillFromPieces(g, withSpecial)
+    // The allocator's class plan is always clash-free: it is the pattern result,
+    // the optimiser's starting point, and the fallback if HiGHS fails.
+    const pattern = fillFromPieces(g, withSpecial)
+    let sp: SeatPapers = pattern
+    let optimised = false
+    if (method === 'optimised' && opts.highs) {
+      const res = solveRoom(opts.highs, g, withSpecial, { timeLimit: opts.roomTimeLimit, start: pattern })
+      if (res.status === 'optimal' || res.status === 'feasible') {
+        sp = res.seatPapers
+        optimised = true
+      }
+    }
+    if (optimised) byMethod.optimised++
+    else byMethod.pattern++
     seats.push(...placeStudents(g, sp, groups))
     roomOrder.push(g.room.id)
   }
@@ -129,7 +148,7 @@ export async function solve(req: SolveRequest, opts: SolveOptions = {}): Promise
       emptySeats: usableSeats - seats.length,
       clashes: check.clashes.length + check.problems.length,
       timeMs: Math.round(performance.now() - t0),
-      roomsByMethod: { optimised: 0, pattern: roomOrder.length },
+      roomsByMethod: byMethod,
     },
     warnings,
   }
