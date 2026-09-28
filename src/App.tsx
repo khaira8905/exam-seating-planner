@@ -6,7 +6,9 @@ import { Stepper } from './components/Stepper'
 import { GenerateStep } from './steps/GenerateStep'
 import { ReviewStep } from './steps/ReviewStep'
 import { RulesStep } from './steps/RulesStep'
+import { DownloadStep } from './steps/DownloadStep'
 import { UploadStep } from './steps/UploadStep'
+import { Autosave } from './app/Autosave'
 
 function StepContent({ step }: { step: ReturnType<typeof useStore>['state']['step'] }) {
   switch (step) {
@@ -17,8 +19,9 @@ function StepContent({ step }: { step: ReturnType<typeof useStore>['state']['ste
     case 'generate':
       return <GenerateStep />
     case 'review':
-    case 'download':
       return <ReviewStep />
+    case 'download':
+      return <DownloadStep />
   }
 }
 
@@ -44,6 +47,7 @@ export default function App() {
   return (
     <StoreProvider>
       <MotionConfig reducedMotion="user">
+      <Autosave />
       <div className="flex min-h-screen flex-col">
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:rounded focus:bg-white focus:p-2">
           Skip to content
