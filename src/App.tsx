@@ -1,3 +1,4 @@
+import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { StoreProvider } from './app/StoreProvider'
 import { useStore } from './app/store'
 import { Header } from './components/Header'
@@ -7,9 +8,8 @@ import { ReviewStep } from './steps/ReviewStep'
 import { RulesStep } from './steps/RulesStep'
 import { UploadStep } from './steps/UploadStep'
 
-function CurrentStep() {
-  const { state } = useStore()
-  switch (state.step) {
+function StepContent({ step }: { step: ReturnType<typeof useStore>['state']['step'] }) {
+  switch (step) {
     case 'upload':
       return <UploadStep />
     case 'rules':
@@ -22,9 +22,28 @@ function CurrentStep() {
   }
 }
 
+/** Smooth, short transition between steps (instant with prefers-reduced-motion). */
+function CurrentStep() {
+  const { state } = useStore()
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={state.step}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -6 }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
+      >
+        <StepContent step={state.step} />
+      </motion.div>
+    </AnimatePresence>
+  )
+}
+
 export default function App() {
   return (
     <StoreProvider>
+      <MotionConfig reducedMotion="user">
       <div className="flex min-h-screen flex-col">
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:rounded focus:bg-white focus:p-2">
           Skip to content
@@ -41,6 +60,7 @@ export default function App() {
           </a>
         </footer>
       </div>
+      </MotionConfig>
     </StoreProvider>
   )
 }

@@ -16,3 +16,39 @@ html.dark {
 body {
   @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
 }
+
+/* Paper colours come in as CSS variables (see paperStyle.ts). */
+@utility paper-fill {
+  background-color: var(--paper-bg);
+  border-color: var(--paper-border);
+  &:where(.dark, .dark *) {
+    background-color: var(--paper-bg-dark);
+    border-color: var(--paper-border-dark);
+  }
+}
+@utility paper-dot {
+  background-color: var(--paper-solid);
+}
+@utility blocked-hatch {
+  background-image: repeating-linear-gradient(135deg, rgb(148 163 184 / 0.35) 0 4px, transparent 4px 8px);
+}
+
+/* Overview mini-maps: seats pop in with a CSS animation (cheap even for 5,000 seats). */
+@keyframes seat-in {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@utility animate-seat-in {
+  animation: seat-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-seat-in {
+    animation: none;
+  }
+}
