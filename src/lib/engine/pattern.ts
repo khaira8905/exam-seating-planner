@@ -123,3 +123,37 @@ export function patternFill(g: RoomGrid, demands: Demand[], seed = 1): SeatPaper
   if (repair(g, best, seed) === 0) return best
   return null
 }
+
+/**
+ * Pattern fill from the allocator's plan: each paper's piece goes into its own
+ * seat class, so the result is clash-free by construction. Inside a class,
+ * papers with special-needs students come first (front rows) and the class's
+ * empty seats are spread evenly instead of all landing at the back.
+ * `pieces[i]` becomes demand index i in the returned map.
+ */
+export function fillFromPieces(
+  g: RoomGrid,
+  pieces: { count: number; classIndex: number; special?: number }[],
+): SeatPapers {
+  const sp = new Int32Array(g.rows * g.cols).fill(-1)
+  g.classes.forEach((seats, k) => {
+    const mine = pieces
+      .map((p, i) => ({ ...p, i }))
+      .filter((p) => p.classIndex === k)
+      .sort((a, b) => Number((b.special ?? 0) > 0) - Number((a.special ?? 0) > 0))
+    const used = mine.reduce((a, p) => a + p.count, 0)
+    if (used > seats.length) throw new Error(`Internal error: class over-filled in ${g.room.name}`)
+    const positions = spreadPositions(seats.length, used)
+    let pos = 0
+    for (const p of mine) for (let n = 0; n < p.count; n++) sp[seats[positions[pos++]]] = p.i
+  })
+  return sp
+}
+
+/** Chooses `used` of `size` positions spread evenly (keeps position 0 = front seat). */
+export function spreadPositions(size: number, used: number): number[] {
+  if (used >= size) return Array.from({ length: size }, (_, i) => i)
+  const out: number[] = []
+  for (let k = 0; k < used; k++) out.push(Math.floor((k * size) / used))
+  return out
+}
