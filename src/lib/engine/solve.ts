@@ -6,10 +6,14 @@
  */
 import { byRoll } from '../sort'
 import type { Method, Plan, Room, SeatAssignment, Session, Strictness, Student } from '../types'
+import { allocate, type RoomAllocation } from './allocate'
 import { checkPlan } from './checker'
-import { buildGrid, paperCapacity, type RoomGrid } from './grid'
-import { patternFill, type Demand, type SeatPapers } from './pattern'
+import type { Infeasible } from './explain'
+import { buildGrid } from './grid'
+import { fillFromPieces, type SeatPapers } from './pattern'
 import { placeStudents } from './place'
+
+export type { Infeasible } from './explain'
 
 export interface SolveRequest {
   students: Student[]
@@ -24,12 +28,6 @@ export interface Progress {
   done: number
   total: number
   room?: string
-}
-
-export interface Infeasible {
-  title: string
-  reasons: string[]
-  suggestions: string[]
 }
 
 export type SolveOutcome = { ok: true; plan: Plan } | { ok: false; problem: Infeasible }
@@ -49,24 +47,41 @@ export function groupByPaper(students: Student[]): Map<string, Student[]> {
   return m
 }
 
-/** Simple first-fit allocation: fill rooms in order, each paper up to the room's per-paper limit. */
-function allocateSequential(grids: RoomGrid[], papers: Map<string, Student[]>): Map<string, Map<string, Student[]>> | null {
-  const queue = [...papers.entries()].map(([paper, list]) => ({ paper, list: [...list] }))
-  const out = new Map<string, Map<string, Student[]>>()
-  for (const g of grids) {
-    let free = g.seats.length
-    const cap = paperCapacity(g)
-    const inRoom = new Map<string, Student[]>()
-    for (const q of queue) {
-      if (free === 0) break
-      const take = Math.min(q.list.length, cap, free)
-      if (take <= 0) continue
-      inRoom.set(q.paper, q.list.splice(0, take))
-      free -= take
+/**
+ * Gives each allocated piece real students. Each paper's students are taken in
+ * roll-number order through the rooms, except that special-needs students are
+ * moved into the paper's lowest-floor rooms first.
+ */
+export function distributeStudents(rooms: RoomAllocation[], students: Student[]): Student[][][] {
+  const papers = groupByPaper(students)
+  const out: Student[][][] = rooms.map((r) => r.pieces.map(() => []))
+  const slots = new Map<string, { room: number; piece: number; floor: number; count: number }[]>()
+  rooms.forEach((r, ri) =>
+    r.pieces.forEach((p, pi) => {
+      const list = slots.get(p.paper) ?? []
+      list.push({ room: ri, piece: pi, floor: r.grid.room.floor ?? Number.POSITIVE_INFINITY, count: p.count })
+      slots.set(p.paper, list)
+    }),
+  )
+  for (const [paper, list] of slots) {
+    const all = papers.get(paper) ?? []
+    const left = list.map((s) => s.count)
+    // Special-needs students first, into the lowest-floor rooms holding this paper.
+    const byFloor = list.map((s, i) => [s.floor, i] as const).sort((a, b) => a[0] - b[0] || a[1] - b[1])
+    for (const st of all.filter((s) => s.specialNeeds)) {
+      const i = byFloor.find(([, j]) => left[j] > 0)![1]
+      out[list[i].room][list[i].piece].push(st)
+      left[i]--
     }
-    if (inRoom.size) out.set(g.room.id, inRoom)
+    // Everyone else in roll-number order through the rooms.
+    let i = 0
+    for (const st of all.filter((s) => !s.specialNeeds)) {
+      while (left[i] === 0) i++
+      out[list[i].room][list[i].piece].push(st)
+      left[i]--
+    }
   }
-  return queue.some((q) => q.list.length) ? null : out
+  return out
 }
 
 export async function solve(req: SolveRequest, opts: SolveOptions = {}): Promise<SolveOutcome> {
@@ -74,38 +89,22 @@ export async function solve(req: SolveRequest, opts: SolveOptions = {}): Promise
   const { students, rooms, rule, method, session } = req
   opts.onProgress?.({ phase: 'allocating', done: 0, total: 1 })
   const grids = rooms.map((r) => buildGrid(r, rule))
-  const papers = groupByPaper(students)
-  const allocation = allocateSequential(grids, papers)
-  if (!allocation) {
-    return {
-      ok: false,
-      problem: { title: 'Not enough room', reasons: ['The rooms cannot hold all students under this rule.'], suggestions: ['Add rooms or relax the rule.'] },
-    }
-  }
+  const allocation = allocate(grids, students)
+  if (!allocation.ok) return { ok: false, problem: allocation.problem }
+  const perPiece = distributeStudents(allocation.rooms, students)
 
   const seats: SeatAssignment[] = []
   const roomOrder: string[] = []
+  const warnings = [...allocation.warnings]
   const gridById = new Map(grids.map((g) => [g.room.id, g]))
-  let done = 0
-  for (const [roomId, inRoom] of allocation) {
-    const g = gridById.get(roomId)!
-    opts.onProgress?.({ phase: 'seating', done, total: allocation.size, room: g.room.name })
-    const groups = [...inRoom.values()]
-    const demands: Demand[] = [...inRoom.entries()].map(([paper, list]) => ({
-      paper,
-      count: list.length,
-      special: list.filter((s) => s.specialNeeds).length,
-    }))
-    const sp: SeatPapers | null = patternFill(g, demands)
-    if (!sp) {
-      return {
-        ok: false,
-        problem: { title: `Couldn't seat room ${g.room.name}`, reasons: ['The pattern method found no clash-free layout.'], suggestions: [] },
-      }
-    }
+  for (let ri = 0; ri < allocation.rooms.length; ri++) {
+    const { grid: g, pieces } = allocation.rooms[ri]
+    opts.onProgress?.({ phase: 'seating', done: ri, total: allocation.rooms.length, room: g.room.name })
+    const groups = perPiece[ri]
+    const withSpecial = pieces.map((p, i) => ({ ...p, special: groups[i].filter((s) => s.specialNeeds).length }))
+    const sp: SeatPapers = fillFromPieces(g, withSpecial)
     seats.push(...placeStudents(g, sp, groups))
-    roomOrder.push(roomId)
-    done++
+    roomOrder.push(g.room.id)
   }
 
   opts.onProgress?.({ phase: 'checking', done: 0, total: 1 })
@@ -132,7 +131,7 @@ export async function solve(req: SolveRequest, opts: SolveOptions = {}): Promise
       timeMs: Math.round(performance.now() - t0),
       roomsByMethod: { optimised: 0, pattern: roomOrder.length },
     },
-    warnings: [],
+    warnings,
   }
   return { ok: true, plan }
 }

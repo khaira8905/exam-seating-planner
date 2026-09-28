@@ -44,10 +44,9 @@ describe('pattern filling', () => {
 })
 
 describe('pipeline with pattern method', () => {
-  // Very strict needs the class-aware room allocation (next step).
-  for (const rule of ['basic', 'strict', 'bench'] as Strictness[]) {
+  for (const rule of ['basic', 'strict', 'very-strict', 'bench'] as Strictness[]) {
     it(`seats 1,200 sample students with 0 clashes (${rule})`, async () => {
-      const { students, rooms } = generateSample({ students: 1200, rooms: 30 })
+      const { students, rooms } = generateSample({ students: 1200, rooms: rule === 'very-strict' ? 45 : 30 })
       const out = await solve({ students, rooms, rule, method: 'pattern', session })
       expect(out.ok).toBe(true)
       if (!out.ok) return
