@@ -168,7 +168,7 @@ the average gap in empty seats between a room's rows drops from 1.17 to 1.00.
 At 5,000 students HiGHS reaches 77–89% (pattern: 77–84%), limited by how many
 front-row ground-floor seats the rule allows (see Limitations).
 
-**Tests:** 69 Vitest tests, including property tests that generate **1,200 random
+**Tests:** 74 Vitest tests, including property tests that generate **1,200 random
 sessions** (random room shapes, benches, blocked seats, floors, paper mixes and
 rules) and assert that the checker finds 0 clashes whenever a plan is returned.
 
