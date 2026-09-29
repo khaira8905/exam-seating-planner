@@ -5,7 +5,7 @@ Upload students and rooms, pick how strict the seating must be, and SeatWise
 builds a plan where no two students writing the same paper sit together, with
 seating charts, door lists, attendance sheets and a master list ready to print.
 
-**Live demo:** _add your Vercel link here after deploying (see [Deploy](#deploy-on-vercel))_ — click **“Try with sample data”** to see 1,200 students seated in about two seconds.
+**Live demo: [exam-seating-planner-sand.vercel.app](https://exam-seating-planner-sand.vercel.app)** — click **“Try with sample data”** to see 1,200 students seated in about two seconds.
 
 ![SeatWise demo: sample data is seated room by room and every seat is re-checked](docs/screenshots/demo.gif)
 
@@ -196,7 +196,7 @@ It is a static Vite site — no configuration file is needed.
 2. **Add New… → Project** → find **exam-seating-planner** → **Import**
    (if it isn't listed: *Adjust GitHub App Permissions* and give Vercel access to the repo).
 3. Vercel detects **Vite** (build command `npm run build`, output directory `dist`). Click **Deploy**.
-4. After about a minute you get a link like `https://exam-seating-planner.vercel.app`.
+4. After about a minute you get a link (this project: https://exam-seating-planner-sand.vercel.app).
    Every push to `main` redeploys automatically.
 
 ## Tech stack
