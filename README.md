@@ -70,6 +70,9 @@ are never uploaded anywhere. The only thing stored is the latest plan, in
 button. This keeps students' personal data under the exam cell's control, in
 the spirit of India's **Digital Personal Data Protection (DPDP) Act, 2023**.
 Once the page has loaded, it keeps working without a connection.
+This is enforced, not just promised: the site is served with a strict
+[Content Security Policy](vercel.json) (`connect-src 'self'`), so the browser itself
+blocks any attempt to send data to another website.
 
 ## How it works
 
