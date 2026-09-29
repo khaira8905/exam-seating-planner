@@ -186,7 +186,9 @@ npm run dev          # http://localhost:5173
 | `npm run bench` | benchmark 300 / 1,200 / 5,000 students; writes `docs/benchmark.md` |
 | `npm run sample-files` | writes sample and template Excel files into `samples/` |
 
-Sample files you can upload are in [`samples/`](samples) (all names are randomly generated).
+Sample files you can upload are in [`samples/`](samples) (all names are randomly generated), including
+`engineering-students-1200.xlsx` + `engineering-rooms-30.xlsx`: 1,200 B.Tech Sem 3 students (CSE, ECE, ME, CE) writing
+4 subjects, and 30 rooms. They seat with 0 clashes under all four rules (18 rooms; 22 in Very strict mode).
 
 ## Deploy on Vercel
 
