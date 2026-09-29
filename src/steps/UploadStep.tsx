@@ -5,6 +5,7 @@ import { useSolver } from '../app/useSolver'
 import { DropZone } from '../components/DropZone'
 import { saveFile, XLSX_MIME } from '../lib/download'
 import { fmt } from '../lib/format'
+import { generateEngineeringSample } from '../lib/sample/engineering'
 import { generateSample, SAMPLE_PRESETS } from '../lib/sample/generate'
 import type { Room, Student } from '../lib/types'
 import { readPlanFile } from '../lib/io/planFile'
@@ -65,8 +66,10 @@ export function UploadStep() {
   }
 
   function loadSample(students: number, rooms?: number): { students: Student[]; rooms: Room[] } {
-    const data = generateSample({ students, rooms })
-    const label = `Sample: ${fmt(students)} students`
+    return showSample(generateSample({ students, rooms }), `Sample: ${fmt(students)} students`)
+  }
+
+  function showSample(data: { students: Student[]; rooms: Room[] }, label: string) {
     dispatch({ type: 'students', students: data.students, file: { fileName: `${label}.xlsx`, count: data.students.length, errors: [], warnings: [] } })
     dispatch({ type: 'rooms', rooms: data.rooms, file: { fileName: `Sample: ${data.rooms.length} rooms.xlsx`, count: data.rooms.length, errors: [], warnings: [] } })
     return data
@@ -158,6 +161,14 @@ export function UploadStep() {
                 {fmt(p.students)}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => showSample(generateEngineeringSample(), 'Sample: engineering, 1,200 students')}
+              className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 font-medium text-slate-700 hover:border-teal-500 hover:text-teal-800 focus-visible:outline-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:text-teal-300"
+              title="1,200 B.Tech students (CSE, ECE, ME, CE) writing 4 subjects, 30 rooms"
+            >
+              Engineering · 4 subjects
+            </button>
           </div>
         </div>
       </section>
