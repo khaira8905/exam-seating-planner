@@ -59,6 +59,10 @@ means redoing it by hand.
 3. **Master list** — every student → room + seat, sorted by roll number
 4. **Attendance sheet** per room, in seat order — seat, roll no., name, paper, answer sheet no., signature
 5. **Summary** — students, rooms used, empty seats, clash-check result, time taken
+6. **Invigilator duty list** — paste invigilator names; SeatWise assigns them to rooms (1 per 40 students by default) with signature boxes
+
+**Print this room:** one click in any room's seating chart gives a single PDF with that room's chart, door list and
+attendance sheet — handy when one room changes at the last minute.
 
 ## Privacy: your data never leaves your computer
 
@@ -168,7 +172,7 @@ the average gap in empty seats between a room's rows drops from 1.17 to 1.00.
 At 5,000 students HiGHS reaches 77–89% (pattern: 77–84%), limited by how many
 front-row ground-floor seats the rule allows (see Limitations).
 
-**Tests:** 74 Vitest tests, including property tests that generate **1,200 random
+**Tests:** 80 Vitest tests, including property tests that generate **1,200 random
 sessions** (random room shapes, benches, blocked seats, floors, paper mixes and
 rules) and assert that the checker finds 0 clashes whenever a plan is returned.
 

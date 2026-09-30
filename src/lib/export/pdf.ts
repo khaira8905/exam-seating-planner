@@ -5,6 +5,7 @@
 import type { Content, TableCell, TDocumentDefinitions } from 'pdfmake/interfaces'
 import { fmt } from '../format'
 import type { ReportKind } from './catalog'
+import type { DutyList } from './duty'
 import { PALETTE } from '../palette'
 import type { PlanView, RoomView } from '../planView'
 import { attendance, doorList, floorText, masterList, reportHeader, seatingChart, summary } from './reports'
@@ -301,4 +302,34 @@ export function roomPackDoc(view: PlanView, roomId: string): TDocumentDefinition
     ],
     info: { title: `SeatWise — Room ${room.room.name}`, creator: 'SeatWise' },
   }
+}
+
+/** Invigilator duty list: who supervises which room, with signature boxes. */
+export function dutyDoc(view: PlanView, duty: DutyList, perInvigilator: number): TDocumentDefinitions {
+  const short = duty.rows.reduce((a, r) => a + r.missing, 0)
+  return base(view, [
+    header(view, 'Invigilator duty list', `${duty.needed} invigilators · 1 per ${perInvigilator} students`),
+    {
+      table: {
+        headerRows: 1,
+        widths: [45, 55, 40, '*', 130, 70],
+        body: [
+          ['Room', 'Floor', 'Students', 'Papers', 'Invigilator(s)', 'Signature'].map((t) => ({ text: t, style: 'th' })),
+          ...duty.rows.map((r) => [
+            { text: r.room, bold: true },
+            r.floor,
+            String(r.students),
+            { text: r.papers, fontSize: 8 },
+            { stack: [...r.invigilators.map((n) => ({ text: n })), ...Array.from({ length: r.missing }, () => ({ text: '— not assigned —', color: '#b91c1c' }))] },
+            '',
+          ]),
+        ],
+        dontBreakRows: true,
+      },
+      layout: { ...tableLayout, paddingTop: () => 4, paddingBottom: () => 4 },
+    },
+    ...(duty.reserves.length ? [{ text: `Reserve invigilators: ${duty.reserves.join(', ')}`, margin: [0, 12, 0, 0] } as Content] : []),
+    ...(short ? [{ text: `${short} more invigilator${short === 1 ? ' is' : 's are'} needed.`, color: '#b91c1c', bold: true, margin: [0, 8, 0, 0] } as Content] : []),
+    { text: 'Chief Superintendent: ______________________', alignment: 'right', margin: [0, 16, 0, 0] },
+  ])
 }

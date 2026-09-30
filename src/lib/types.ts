@@ -79,4 +79,8 @@ export interface Plan {
   revision?: number
   /** Human-readable list of changes applied by re-planning. */
   changes?: string[]
+  /** Invigilator names typed on the Download step (for the duty list). */
+  invigilators?: string[]
+  /** Students per invigilator used for the duty list (default 40). */
+  studentsPerInvigilator?: number
 }

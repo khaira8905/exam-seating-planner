@@ -52,6 +52,7 @@ export type Action =
   | { type: 'solve-failed'; problem: Infeasible }
   | { type: 'plan'; plan: Plan }
   | { type: 'replanned'; plan: Plan; diff: PlanDiff }
+  | { type: 'invigilators'; names: string[]; perInvigilator: number }
   | { type: 'reset' }
 
 function today(): string {
@@ -95,6 +96,10 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, progress: action.progress }
     case 'solve-done':
       return { ...state, status: 'done', plan: action.plan, step: 'review', progress: null, lastDiff: null }
+    case 'invigilators':
+      return state.plan
+        ? { ...state, plan: { ...state.plan, invigilators: action.names, studentsPerInvigilator: action.perInvigilator } }
+        : state
     case 'replanned':
       return { ...state, plan: action.plan, students: action.plan.students, rooms: action.plan.rooms, lastDiff: action.diff }
     case 'solve-failed':
