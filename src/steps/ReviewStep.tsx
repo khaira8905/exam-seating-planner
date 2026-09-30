@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { AlertTriangle, ArrowRight, ChevronLeft, ChevronRight, Loader2, Printer, RefreshCw } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { usePlanView } from '../app/planView'
@@ -11,7 +11,8 @@ import { SeatDetails } from '../components/review/SeatDetails'
 import { SeatGrid } from '../components/review/SeatGrid'
 import { StudentSearch } from '../components/review/StudentSearch'
 import { SummaryCards } from '../components/review/SummaryCards'
-import { sessionLabel } from '../lib/format'
+import { saveFile } from '../lib/download'
+import { fileStem, sessionLabel } from '../lib/format'
 import { RULE_BY_ID } from '../lib/rules'
 
 export function ReviewStep() {
@@ -22,6 +23,7 @@ export function ReviewStep() {
   const [active, setActive] = useState<number | null>(null)
   const [highlight, setHighlight] = useState<number | null>(null)
   const [changing, setChanging] = useState(false)
+  const [printing, setPrinting] = useState(false)
   const moved = useMemo(
     () => new Set([...(state.lastDiff?.moved ?? []), ...(state.lastDiff?.added ?? [])].map((m) => m.roll)),
     [state.lastDiff],
@@ -147,6 +149,25 @@ export function ReviewStep() {
                   </p>
                 </div>
                 <div className="flex gap-1">
+                  <button
+                    type="button"
+                    disabled={printing}
+                    onClick={async () => {
+                      setPrinting(true)
+                      try {
+                        const { renderPdf, roomPackDoc } = await import('../lib/export/pdf')
+                        const bytes = await renderPdf(roomPackDoc(view, room.room.id))
+                        saveFile(`${fileStem(plan.session)}-room-${room.room.name}.pdf`, bytes, 'application/pdf')
+                      } finally {
+                        setPrinting(false)
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-teal-600 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                    title="Seating chart, door list and attendance sheet for this room, in one PDF"
+                  >
+                    {printing ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Printer className="h-4 w-4" aria-hidden="true" />}
+                    Print this room
+                  </button>
                   <button
                     type="button"
                     disabled={index <= 0}
