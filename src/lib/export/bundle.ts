@@ -3,9 +3,10 @@ import JSZip from 'jszip'
 import { fileStem } from '../format'
 import { serialisePlan } from '../io/planFile'
 import type { PlanView } from '../planView'
-import { XLSX_BUILDERS } from './excel'
+import { assignDuties, DEFAULT_STUDENTS_PER_INVIGILATOR } from './duty'
+import { dutyXlsx, XLSX_BUILDERS } from './excel'
 import { REPORT_LIST } from './catalog'
-import { PDF_BUILDERS, renderPdf } from './pdf'
+import { dutyDoc, PDF_BUILDERS, renderPdf } from './pdf'
 
 export const REPORTS = REPORT_LIST
 
@@ -20,6 +21,13 @@ export async function buildZip(view: PlanView, onProgress?: (done: number, total
     tick()
     zip.file(`excel/${stem}-${r.kind}.xlsx`, XLSX_BUILDERS[r.kind](view))
     tick()
+  }
+  const names = view.plan.invigilators ?? []
+  if (names.length) {
+    const per = view.plan.studentsPerInvigilator ?? DEFAULT_STUDENTS_PER_INVIGILATOR
+    const duty = assignDuties(view, names, per)
+    zip.file(`${stem}-invigilator-duties.pdf`, await renderPdf(dutyDoc(view, duty, per)))
+    zip.file(`excel/${stem}-invigilator-duties.xlsx`, dutyXlsx(view, duty, per))
   }
   zip.file(`${stem}.seatwise.json`, serialisePlan(view.plan))
   tick()

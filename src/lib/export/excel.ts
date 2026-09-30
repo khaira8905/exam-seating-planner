@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx'
 import type { PlanView } from '../planView'
 import { attendance, doorList, floorText, masterList, reportHeader, seatingChart, summary } from './reports'
 import type { ReportKind } from './catalog'
+import type { DutyList } from './duty'
 
 /** Excel sheet names: ≤ 31 chars, no []:*?/\ and unique within the workbook. */
 export function sheetName(name: string, used: Set<string>): string {
@@ -104,4 +105,14 @@ export const XLSX_BUILDERS: Record<ReportKind, (v: PlanView) => Uint8Array> = {
   'master-list': masterListXlsx,
   'attendance-sheets': attendanceXlsx,
   summary: summaryXlsx,
+}
+
+export function dutyXlsx(view: PlanView, duty: DutyList, perInvigilator: number): Uint8Array {
+  const rows: (string | number)[][] = [
+    ...titleRows(view, `Invigilator duty list — 1 per ${perInvigilator} students`),
+    ['Room', 'Floor', 'Students', 'Papers', 'Invigilator(s)', 'Signature'],
+    ...duty.rows.map((r) => [r.room, r.floor, r.students, r.papers, [...r.invigilators, ...Array.from({ length: r.missing }, () => 'NOT ASSIGNED')].join(', '), '']),
+  ]
+  if (duty.reserves.length) rows.push([], ['Reserves', duty.reserves.join(', ')])
+  return workbook([['Invigilators', sheet(rows, [10, 12, 9, 30, 40, 18])]])
 }

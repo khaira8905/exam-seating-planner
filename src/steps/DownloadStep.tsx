@@ -3,6 +3,7 @@ import { motion } from 'motion/react'
 import { useState } from 'react'
 import { usePlanView } from '../app/planView'
 import { useStore } from '../app/store'
+import { DutyCard } from '../components/DutyCard'
 import { saveFile, XLSX_MIME } from '../lib/download'
 import { REPORT_LIST, type ReportKind } from '../lib/export/catalog'
 import { fileStem, fmt } from '../lib/format'
@@ -64,7 +65,7 @@ export function DownloadStep() {
       <section className="flex flex-col gap-4 rounded-2xl border border-teal-200 bg-teal-50 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-teal-900 dark:bg-teal-950/40">
         <div>
           <h2 className="font-semibold">Everything in one ZIP</h2>
-          <p className="text-sm text-slate-700 dark:text-slate-300">All five PDFs, the same as Excel files, and the plan file to reopen later.</p>
+          <p className="text-sm text-slate-700 dark:text-slate-300">All five PDFs, the same as Excel files, the invigilator duty list (if names are entered) and the plan file.</p>
         </div>
         <button
           type="button"
@@ -128,6 +129,8 @@ export function DownloadStep() {
           </div>
         </li>
       </ul>
+
+      <DutyCard view={view} />
 
       <button
         type="button"
