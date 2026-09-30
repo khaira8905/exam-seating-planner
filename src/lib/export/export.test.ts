@@ -6,7 +6,7 @@ import { buildPlanView, rollRanges, type PlanView } from '../planView'
 import { generateSample } from '../sample/generate'
 import { buildZip, REPORTS } from './bundle'
 import { masterListXlsx, seatingChartsXlsx, sheetName, XLSX_BUILDERS } from './excel'
-import { PDF_BUILDERS, renderPdf } from './pdf'
+import { PDF_BUILDERS, renderPdf, roomPackDoc } from './pdf'
 import { attendance, doorList, masterList } from './reports'
 
 let view: PlanView
@@ -77,5 +77,19 @@ describe('PDF output', () => {
     expect(names.filter((n) => n.endsWith('.pdf'))).toHaveLength(5)
     expect(names.filter((n) => n.endsWith('.xlsx'))).toHaveLength(5)
     expect(names).toContain('seatwise-2026-11-24-morning.seatwise.json')
+  })
+})
+
+describe('room pack (Print this room)', () => {
+  it('puts one room\'s chart, door list and attendance sheet in one PDF', async () => {
+    const room = view.rooms[0]
+    const doc = roomPackDoc(view, room.room.id)
+    expect(doc.pageOrientation).toBe('landscape')
+    const bytes = await renderPdf(doc)
+    expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-')
+    const text = JSON.stringify(doc.content)
+    expect(text).toContain(`Room ${room.room.name} — seating chart`)
+    expect(text).toContain(`Attendance sheet — Room ${room.room.name}`)
+    expect(text).not.toContain(`Room ${view.rooms[1].room.name} — seating chart`)
   })
 })

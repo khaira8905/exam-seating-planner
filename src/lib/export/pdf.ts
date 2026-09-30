@@ -279,3 +279,26 @@ export async function renderPdf(doc: TDocumentDefinitions): Promise<Uint8Array> 
 export async function preloadPdf(): Promise<void> {
   await Promise.all([import('pdfmake/build/pdfmake'), import('pdfmake/build/vfs_fonts')])
 }
+
+/**
+ * Everything one room needs, in one PDF: the seating chart (landscape), the
+ * door list and the attendance sheet (portrait). Used by "Print this room".
+ */
+export function roomPackDoc(view: PlanView, roomId: string): TDocumentDefinitions {
+  const room = view.rooms.find((r) => r.room.id === roomId)
+  if (!room) throw new Error(`Unknown room ${roomId}`)
+  const one: PlanView = { ...view, rooms: [room] }
+  const asArray = (c: TDocumentDefinitions['content']): Content[] => (Array.isArray(c) ? c : [c])
+  const chart = asArray(seatingChartsDoc(one).content)
+  const door = asArray(doorListsDoc(one).content)
+  const sheet = asArray(attendanceDoc(one).content)
+  return {
+    ...base(one, chart, true),
+    content: [
+      ...chart,
+      { stack: door, pageBreak: 'before', pageOrientation: 'portrait' },
+      { stack: sheet, pageBreak: 'before', pageOrientation: 'portrait' },
+    ],
+    info: { title: `SeatWise — Room ${room.room.name}`, creator: 'SeatWise' },
+  }
+}
