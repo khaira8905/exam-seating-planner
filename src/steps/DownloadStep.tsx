@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { usePlanView } from '../app/planView'
 import { useStore } from '../app/store'
 import { DutyCard } from '../components/DutyCard'
+import { SessionTabs } from '../components/review/SessionTabs'
+import { slotLabel, SLOTS } from '../lib/sessions'
 import { saveFile, XLSX_MIME } from '../lib/download'
 import { REPORT_LIST, type ReportKind } from '../lib/export/catalog'
 import { fileStem, fmt } from '../lib/format'
@@ -19,6 +21,7 @@ export function DownloadStep() {
   const [error, setError] = useState<string | null>(null)
   if (!view) return null
   const stem = fileStem(view.plan.session)
+  const multi = Object.keys(state.sessionPlans).length > 1
 
   async function guard(key: Busy, fn: () => Promise<void>) {
     setBusy(key)
@@ -45,9 +48,12 @@ export function DownloadStep() {
     })
   const zip = () =>
     guard('zip', async () => {
-      const { buildZip } = await import('../lib/export/bundle')
-      const bytes = await buildZip(view, (done, total) => setZipProgress([done, total]))
-      saveFile(`${stem}-all.zip`, bytes, 'application/zip')
+      const [{ buildZip }, { buildPlanView }] = await Promise.all([import('../lib/export/bundle'), import('../lib/planView')])
+      // Both sessions go into one ZIP (a folder each) when the file covered both.
+      const all = SLOTS.map((slot) => state.sessionPlans[slot]).filter((p) => p !== undefined)
+      const views = all.length > 1 ? all.map((p) => (p === view.plan ? view : buildPlanView(p))) : [view]
+      const bytes = await buildZip(views, (done, total) => setZipProgress([done, total]))
+      saveFile(views.length > 1 ? `seatwise-${view.plan.session.date}-both-sessions.zip` : `${stem}-all.zip`, bytes, 'application/zip')
     })
 
   const btn =
@@ -55,9 +61,11 @@ export function DownloadStep() {
 
   return (
     <div className="space-y-6">
+      <SessionTabs />
       <div>
         <h1 className="text-xl font-semibold tracking-tight">Download printouts</h1>
         <p className="text-sm text-slate-600 dark:text-slate-400">
+          {multi && `${slotLabel(view.plan.session.slot)} session · `}
           {fmt(view.plan.stats.students)} students in {fmt(view.plan.stats.roomsUsed)} rooms · every file is created on this computer.
         </p>
       </div>
@@ -65,7 +73,10 @@ export function DownloadStep() {
       <section className="flex flex-col gap-4 rounded-2xl border border-teal-200 bg-teal-50 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-teal-900 dark:bg-teal-950/40">
         <div>
           <h2 className="font-semibold">Everything in one ZIP</h2>
-          <p className="text-sm text-slate-700 dark:text-slate-300">All five PDFs, the same as Excel files, the invigilator duty list (if names are entered) and the plan file.</p>
+          <p className="text-sm text-slate-700 dark:text-slate-300">
+            All five PDFs, the same as Excel files, the invigilator duty list (if names are entered) and the plan file
+            {multi ? ' — for both sessions, one folder each.' : '.'}
+          </p>
         </div>
         <button
           type="button"

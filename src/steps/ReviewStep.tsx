@@ -10,6 +10,7 @@ import { RoomsOverview } from '../components/review/RoomsOverview'
 import { SeatDetails } from '../components/review/SeatDetails'
 import { SeatGrid } from '../components/review/SeatGrid'
 import { StudentSearch } from '../components/review/StudentSearch'
+import { SessionTabs } from '../components/review/SessionTabs'
 import { SummaryCards } from '../components/review/SummaryCards'
 import { saveFile } from '../lib/download'
 import { fileStem, sessionLabel } from '../lib/format'
@@ -42,6 +43,7 @@ export function ReviewStep() {
 
   return (
     <div className="space-y-5">
+      <SessionTabs />
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Seating plan</h1>

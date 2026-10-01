@@ -5,6 +5,8 @@ import { fmt } from '../lib/format'
 import { RULES } from '../lib/rules'
 import type { Strictness } from '../lib/types'
 import { FeasibilityPreview } from '../components/FeasibilityPreview'
+import { slotLabel, SLOTS, splitBySession } from '../lib/sessions'
+import { useMemo } from 'react'
 
 /** 3×3 neighbourhood picture: centre = the student, red = must be a different paper. */
 function RuleDiagram({ rule }: { rule: Strictness }) {
@@ -56,6 +58,10 @@ export function RulesStep() {
   const { state, dispatch } = useStore()
   const { run } = useSolver()
   const { session } = state
+  const split = useMemo(() => {
+    const m = state.students ? splitBySession(state.students) : null
+    return m && m.size > 1 ? m : null
+  }, [state.students])
   const inputClass =
     'mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-teal-600 focus:ring-2 focus:ring-teal-600/30 focus:outline-none dark:border-slate-700 dark:bg-slate-950'
 
@@ -73,29 +79,38 @@ export function RulesStep() {
               className={inputClass}
             />
           </label>
-          <fieldset>
-            <legend className="text-sm font-medium">Session</legend>
-            <div className="mt-1 flex rounded-lg border border-slate-300 p-0.5 dark:border-slate-700" role="radiogroup">
-              {(['morning', 'evening'] as const).map((slot) => (
-                <label
-                  key={slot}
-                  className={`flex-1 cursor-pointer rounded-md px-3 py-1.5 text-center text-sm font-medium capitalize has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-teal-600 ${
-                    session.slot === slot ? 'bg-teal-700 text-white dark:bg-teal-500 dark:text-slate-950' : 'text-slate-700 dark:text-slate-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="slot"
-                    value={slot}
-                    checked={session.slot === slot}
-                    onChange={() => dispatch({ type: 'session', session: { slot } })}
-                    className="sr-only"
-                  />
-                  {slot}
-                </label>
-              ))}
+          {split ? (
+            <div>
+              <p className="text-sm font-medium">Sessions (from your file)</p>
+              <p className="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700">
+                Both: {SLOTS.filter((x) => split.has(x)).map((x) => `${slotLabel(x)} ${fmt(split.get(x)!.length)}`).join(' · ')}
+              </p>
             </div>
-          </fieldset>
+          ) : (
+            <fieldset>
+              <legend className="text-sm font-medium">Session</legend>
+              <div className="mt-1 flex rounded-lg border border-slate-300 p-0.5 dark:border-slate-700" role="radiogroup">
+                {(['morning', 'evening'] as const).map((slot) => (
+                  <label
+                    key={slot}
+                    className={`flex-1 cursor-pointer rounded-md px-3 py-1.5 text-center text-sm font-medium capitalize has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-teal-600 ${
+                      session.slot === slot ? 'bg-teal-700 text-white dark:bg-teal-500 dark:text-slate-950' : 'text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="slot"
+                      value={slot}
+                      checked={session.slot === slot}
+                      onChange={() => dispatch({ type: 'session', session: { slot } })}
+                      className="sr-only"
+                    />
+                    {slot}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
           <label className="block text-sm font-medium">
             Exam name (printed on sheets)
             <input
@@ -183,7 +198,7 @@ export function RulesStep() {
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
         >
           <Play className="h-4 w-4" aria-hidden="true" />
-          Generate plan for {fmt(state.students?.length ?? 0)} students
+          Generate plan for {fmt(state.students?.length ?? 0)} students{split ? ' (2 sessions)' : ''}
         </button>
       </div>
     </div>

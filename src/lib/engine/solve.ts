@@ -30,6 +30,8 @@ export interface Progress {
   done: number
   total: number
   room?: string
+  /** Which session is being planned, when a file covers both sessions. */
+  session?: string
 }
 
 export type SolveOutcome = { ok: true; plan: Plan } | { ok: false; problem: Infeasible }

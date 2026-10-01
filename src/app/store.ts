@@ -2,7 +2,8 @@ import { createContext, useContext, type Dispatch } from 'react'
 import type { PlanDiff } from '../lib/engine/replan'
 import type { Progress, Infeasible } from '../lib/engine/solve'
 import type { Issue } from '../lib/io/parse'
-import type { Method, Plan, Room, Session, Strictness, Student } from '../lib/types'
+import { SLOTS } from '../lib/sessions'
+import type { Method, Plan, Room, Session, Slot, Strictness, Student } from '../lib/types'
 
 export const STEPS = ['upload', 'rules', 'generate', 'review', 'download'] as const
 export type Step = (typeof STEPS)[number]
@@ -37,6 +38,8 @@ export interface AppState {
   problem: Infeasible | null
   /** What the last re-plan changed (for the "What changed" panel and seat animations). */
   lastDiff: PlanDiff | null
+  /** When the students file covers both sessions: one plan per session (`plan` is the one on screen). */
+  sessionPlans: Partial<Record<Slot, Plan>>
 }
 
 export type Action =
@@ -49,6 +52,8 @@ export type Action =
   | { type: 'solve-start' }
   | { type: 'solve-progress'; progress: Progress }
   | { type: 'solve-done'; plan: Plan }
+  | { type: 'sessions-done'; plans: Plan[] }
+  | { type: 'switch-session'; slot: Slot }
   | { type: 'solve-failed'; problem: Infeasible }
   | { type: 'plan'; plan: Plan }
   | { type: 'replanned'; plan: Plan; diff: PlanDiff }
@@ -74,6 +79,19 @@ export const initialState: AppState = {
   plan: null,
   problem: null,
   lastDiff: null,
+  sessionPlans: {},
+}
+
+const isMulti = (s: AppState) => Object.keys(s.sessionPlans).length > 1
+
+/**
+ * Puts a changed plan (re-plan, invigilators) on screen. With two sessions it
+ * also updates that session's entry and keeps the full student list intact.
+ */
+function withPlan(state: AppState, plan: Plan): AppState {
+  if (!isMulti(state)) return { ...state, plan, students: plan.students, rooms: plan.rooms }
+  const sessionPlans = { ...state.sessionPlans, [plan.session.slot]: plan }
+  return { ...state, plan, sessionPlans, students: SLOTS.flatMap((slot) => sessionPlans[slot]?.students ?? []) }
 }
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -95,13 +113,25 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'solve-progress':
       return { ...state, progress: action.progress }
     case 'solve-done':
-      return { ...state, status: 'done', plan: action.plan, step: 'review', progress: null, lastDiff: null }
+      return { ...state, status: 'done', plan: action.plan, step: 'review', progress: null, lastDiff: null, sessionPlans: {} }
+    case 'sessions-done':
+      return {
+        ...state,
+        status: 'done',
+        plan: action.plans[0],
+        sessionPlans: Object.fromEntries(action.plans.map((p) => [p.session.slot, p])),
+        step: 'review',
+        progress: null,
+        lastDiff: null,
+      }
+    case 'switch-session': {
+      const plan = state.sessionPlans[action.slot]
+      return plan ? { ...state, plan, lastDiff: null } : state
+    }
     case 'invigilators':
-      return state.plan
-        ? { ...state, plan: { ...state.plan, invigilators: action.names, studentsPerInvigilator: action.perInvigilator } }
-        : state
+      return state.plan ? withPlan(state, { ...state.plan, invigilators: action.names, studentsPerInvigilator: action.perInvigilator }) : state
     case 'replanned':
-      return { ...state, plan: action.plan, students: action.plan.students, rooms: action.plan.rooms, lastDiff: action.diff }
+      return { ...withPlan(state, action.plan), lastDiff: action.diff }
     case 'solve-failed':
       return { ...state, status: 'failed', problem: action.problem, progress: null }
     case 'plan':
@@ -118,6 +148,7 @@ export function reducer(state: AppState, action: Action): AppState {
         status: 'done',
         problem: null,
         lastDiff: null,
+        sessionPlans: {},
         step: 'review',
       }
     case 'reset':
