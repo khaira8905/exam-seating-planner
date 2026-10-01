@@ -70,10 +70,10 @@ export function studentsTemplate(): ArrayBuffer {
   XLSX.utils.book_append_sheet(
     wb,
     dataSheet(STUDENT_COLUMNS, [
-      ['CSE301', 'Priya Sharma', 'CSE Sem 3', 'CS301', 'Data Structures', ''],
-      ['CSE302', 'Rahul Verma', 'CSE Sem 3', 'CS301', 'Data Structures', 'Wheelchair'],
-      ['ECE101', 'Ananya Iyer', 'ECE Sem 1', 'PH101', 'Engineering Physics', ''],
-      ['BBA501', 'Arjun Singh', 'BBA Sem 5', 'BB501', 'Financial Management', ''],
+      ['CSE301', 'Priya Sharma', 'CSE Sem 3', 'CS301', 'Data Structures', '', ''],
+      ['CSE302', 'Rahul Verma', 'CSE Sem 3', 'CS301', 'Data Structures', 'Wheelchair', ''],
+      ['ECE101', 'Ananya Iyer', 'ECE Sem 1', 'PH101', 'Engineering Physics', '', ''],
+      ['BBA501', 'Arjun Singh', 'BBA Sem 5', 'BB501', 'Financial Management', '', ''],
     ]),
     'Students',
   )
@@ -82,6 +82,7 @@ export function studentsTemplate(): ArrayBuffer {
     instructionsSheet('SeatWise — students file', STUDENT_COLUMNS, [
       'One row per student writing an exam in this session. Replace the example rows with your own.',
       'Students writing the same Paper Code will never be seated next to each other (how strictly is chosen in the app).',
+      'Session is optional: fill in Morning or Evening to plan both sessions of a day from one file (a student may then appear once per session).',
       'You can also upload a CSV with the same column headers.',
       PRIVACY,
     ]),
@@ -118,8 +119,14 @@ export function roomsTemplate(): ArrayBuffer {
 /** Exports the (generated) sample data as two Excel files so users can inspect them. */
 export function studentsToWorkbook(students: Student[]): ArrayBuffer {
   const wb = XLSX.utils.book_new()
-  const rows = students.map((s) => [s.roll, s.name, s.course, s.paper, s.paperName ?? '', s.specialNeeds ?? ''])
-  XLSX.utils.book_append_sheet(wb, dataSheet(STUDENT_COLUMNS, rows), 'Students')
+  // The Session column is only written when the data covers more than one session.
+  const withSlot = students.some((s) => s.slot)
+  const defs = withSlot ? STUDENT_COLUMNS : STUDENT_COLUMNS.filter((c) => c.key !== 'slot')
+  const rows = students.map((s) => {
+    const row = [s.roll, s.name, s.course, s.paper, s.paperName ?? '', s.specialNeeds ?? '']
+    return withSlot ? [...row, s.slot === 'evening' ? 'Evening' : 'Morning'] : row
+  })
+  XLSX.utils.book_append_sheet(wb, dataSheet(defs, rows), 'Students')
   return XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: true }) as ArrayBuffer
 }
 

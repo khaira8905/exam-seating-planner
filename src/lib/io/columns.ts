@@ -13,7 +13,7 @@ export interface ColumnDef<K extends string> {
   example: string
 }
 
-export type StudentKey = 'roll' | 'name' | 'course' | 'paper' | 'paperName' | 'specialNeeds'
+export type StudentKey = 'roll' | 'name' | 'course' | 'paper' | 'paperName' | 'specialNeeds' | 'slot'
 export type RoomKey = 'room' | 'rows' | 'seatsPerRow' | 'benchesPerRow' | 'seatsPerBench' | 'blocked' | 'floor'
 
 export const STUDENT_COLUMNS: ColumnDef<StudentKey>[] = [
@@ -63,6 +63,14 @@ export const STUDENT_COLUMNS: ColumnDef<StudentKey>[] = [
     aliases: ['specialneeds', 'specialneed', 'pwd', 'pwbd', 'accessibility', 'needs', 'disability', 'remarks'],
     required: false,
     description: 'Leave blank if none. Anything else (e.g. "Wheelchair", "Scribe") gets a front-row seat, on the ground floor when possible.',
+    example: '',
+  },
+  {
+    key: 'slot',
+    header: 'Session',
+    aliases: ['session', 'slot', 'shift', 'examsession'],
+    required: false,
+    description: 'Optional: Morning or Evening (FN/AN and AM/PM also work). Fill it in to plan both sessions of a day from one file; leave the column out for a single session.',
     example: '',
   },
 ]

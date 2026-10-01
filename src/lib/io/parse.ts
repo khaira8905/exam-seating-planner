@@ -1,5 +1,5 @@
 import { parseSeatLabel, seatLabel } from '../seatLabel'
-import type { Room, Student } from '../types'
+import type { Room, Slot, Student } from '../types'
 import { normaliseHeader, ROOM_COLUMNS, STUDENT_COLUMNS, type ColumnDef } from './columns'
 
 /** A problem found in an uploaded file. `row` is the spreadsheet row number (header = row 1). */
@@ -59,6 +59,15 @@ function mapColumns<K extends string>(grid: Grid, defs: ColumnDef<K>[], what: st
 
 const NO_NEEDS = new Set(['', 'no', 'none', 'nil', 'na', 'n/a', '-', '--', '0', 'false', 'nill', 'n'])
 
+/** "Morning", "FN", "AM", "1st" → morning; "Evening", "Afternoon", "AN", "PM", "2nd" → evening. */
+export function parseSlot(text: string): Slot | undefined | null {
+  const t = text.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+  if (!t) return undefined
+  if (['morning', 'm', 'fn', 'forenoon', 'am', 'mor', '1', '1st', 'first', 'session1', 's1'].includes(t)) return 'morning'
+  if (['evening', 'e', 'an', 'afternoon', 'pm', 'eve', '2', '2nd', 'second', 'session2', 's2'].includes(t)) return 'evening'
+  return null
+}
+
 export function parseStudents(grid: Grid): ParseResult<Student> {
   const { headerIndex, index, errors } = mapColumns(grid, STUDENT_COLUMNS, 'students')
   const warnings: Issue[] = []
@@ -77,12 +86,23 @@ export function parseStudents(grid: Grid): ParseResult<Student> {
     const roll = get(row, 'roll').replace(/\s+/g, '')
     const name = get(row, 'name')
     const paper = get(row, 'paper').replace(/\s+/g, '').toUpperCase()
+    const slotText = get(row, 'slot')
+    const slot = parseSlot(slotText)
+    // A student may write once per session, so duplicates are checked per session.
+    const key = `${roll.toUpperCase()}|${slot ?? ''}`
     let bad = false
     if (!roll) {
       errors.push({ row: line, message: `Row ${line}: roll number missing.` })
       bad = true
-    } else if (firstRowOfRoll.has(roll.toUpperCase())) {
-      errors.push({ row: line, message: `Row ${line}: roll number ${roll} appears twice (also in row ${firstRowOfRoll.get(roll.toUpperCase())}).` })
+    } else if (firstRowOfRoll.has(key)) {
+      errors.push({
+        row: line,
+        message: `Row ${line}: roll number ${roll} appears twice${slot ? ` in the ${slot} session` : ''} (also in row ${firstRowOfRoll.get(key)}).`,
+      })
+      bad = true
+    }
+    if (slot === null) {
+      errors.push({ row: line, message: `Row ${line}: session "${slotText}" not understood — use Morning or Evening.` })
       bad = true
     }
     if (!paper) {
@@ -94,16 +114,24 @@ export function parseStudents(grid: Grid): ParseResult<Student> {
       break
     }
     if (bad) continue
-    firstRowOfRoll.set(roll.toUpperCase(), line)
+    firstRowOfRoll.set(key, line)
     if (!name) warnings.push({ row: line, message: `Row ${line}: name missing for ${roll} — the roll number will be printed instead.` })
     const student: Student = { roll, name: name || roll, course: get(row, 'course'), paper }
     const paperName = get(row, 'paperName')
     if (paperName) student.paperName = paperName
     const needs = get(row, 'specialNeeds')
     if (!NO_NEEDS.has(needs.toLowerCase())) student.specialNeeds = /^(y|yes|true|1)$/i.test(needs) ? 'Yes' : needs
+    if (slot) student.slot = slot
     items.push(student)
   }
   if (!errors.length && !items.length) errors.push({ message: 'The students file has headers but no student rows.' })
+  const withSlot = items.filter((s) => s.slot).length
+  if (withSlot > 0 && withSlot < items.length) {
+    warnings.push({
+      message: `${items.length - withSlot} student${items.length - withSlot === 1 ? ' has' : 's have'} no session filled in — they will be planned in the morning session.`,
+    })
+    for (const s of items) s.slot ??= 'morning'
+  }
 
   // Same paper code with different names is usually a typo — warn once per paper.
   const names = new Map<string, string>()
