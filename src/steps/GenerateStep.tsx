@@ -43,12 +43,13 @@ export function GenerateStep() {
   }
 
   const pct = progress && progress.total ? Math.round((progress.done / progress.total) * 100) : 0
-  const label =
+  const stepLabel =
     progress?.phase === 'seating'
       ? `Seating room ${progress.room ?? ''} (${progress.done + 1} of ${progress.total})`
       : progress?.phase === 'checking'
         ? 'Double-checking every seat…'
         : 'Allocating students to rooms…'
+  const label = progress?.session ? `${progress.session} session · ${stepLabel}` : stepLabel
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900" aria-live="polite">
       <h2 className="text-lg font-semibold">Generating your plan</h2>

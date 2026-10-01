@@ -93,3 +93,14 @@ describe('room pack (Print this room)', () => {
     expect(text).not.toContain(`Room ${view.rooms[1].room.name} — seating chart`)
   })
 })
+
+describe('download all with two sessions', () => {
+  it('puts each session in its own folder', async () => {
+    const evening = buildPlanView({ ...view.plan, id: 'evening', session: { ...view.plan.session, slot: 'evening' } })
+    const zip = await JSZip.loadAsync(await buildZip([view, evening]))
+    const names = Object.keys(zip.files)
+    expect(names.filter((n) => n.startsWith('morning/') && n.endsWith('.pdf'))).toHaveLength(5)
+    expect(names.filter((n) => n.startsWith('evening/') && n.endsWith('.pdf'))).toHaveLength(5)
+    expect(names).toContain('evening/seatwise-2026-11-24-evening.seatwise.json')
+  })
+})
