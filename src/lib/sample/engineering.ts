@@ -33,3 +33,39 @@ export function generateEngineeringSample(): SampleData {
   const { rooms } = generateSample({ students: 1200, rooms: 30, seed: 2026 })
   return { students, rooms }
 }
+
+const EVENING_BRANCHES = [
+  { course: 'CSE', paper: 'CS501', paperName: 'Operating Systems', n: 300 },
+  { course: 'ECE', paper: 'EC501', paperName: 'Digital Communication', n: 250 },
+  { course: 'ME', paper: 'MD501', paperName: 'Machine Design', n: 200 },
+  { course: 'CE', paper: 'CV501', paperName: 'Geotechnical Engineering', n: 150 },
+] as const
+
+/**
+ * A full exam day in one file (Session column): the 1,200 Sem 3 students in
+ * the morning; 900 Sem 5 students in the evening, plus 30 Sem 3 students
+ * re-sitting a maths paper — they appear in both sessions.
+ */
+export function generateTwoSessionSample(): SampleData {
+  const { students: morning, rooms } = generateEngineeringSample()
+  const rng = createRng(5151)
+  const evening: Student[] = EVENING_BRANCHES.flatMap((b) =>
+    Array.from({ length: b.n }, (_, i) => {
+      const s: Student = {
+        roll: `${b.course}5${String(i + 1).padStart(3, '0')}`,
+        name: `${rng.pick(FIRST_NAMES)} ${rng.pick(SURNAMES)}`,
+        course: `B.Tech ${b.course} Sem 5`,
+        paper: b.paper,
+        paperName: b.paperName,
+        slot: 'evening',
+      }
+      if (rng.chance(0.015)) s.specialNeeds = rng.pick(SPECIAL_NEEDS)
+      return s
+    }),
+  )
+  // Every 40th Sem 3 student also re-sits Engineering Mathematics III in the evening.
+  const resits: Student[] = morning
+    .filter((_, i) => i % 40 === 7)
+    .map((s) => ({ roll: s.roll, name: s.name, course: s.course, paper: 'MA201', paperName: 'Engineering Mathematics III (re-sit)', slot: 'evening' }))
+  return { students: [...morning.map((s) => ({ ...s, slot: 'morning' as const })), ...evening, ...resits], rooms }
+}
