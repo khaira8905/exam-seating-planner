@@ -7,7 +7,7 @@
 import fs from 'node:fs'
 import { roomsTemplate, roomsToWorkbook, studentsTemplate, studentsToWorkbook } from '../src/lib/io/sheet'
 import { generateSample, SAMPLE_PRESETS } from '../src/lib/sample/generate'
-import { generateEngineeringSample } from '../src/lib/sample/engineering'
+import { generateEngineeringSample, generateTwoSessionSample } from '../src/lib/sample/engineering'
 
 fs.mkdirSync('samples', { recursive: true })
 fs.writeFileSync('samples/students-template.xlsx', Buffer.from(studentsTemplate()))
@@ -24,3 +24,8 @@ const eng = generateEngineeringSample()
 fs.writeFileSync('samples/engineering-students-1200.xlsx', Buffer.from(studentsToWorkbook(eng.students)))
 fs.writeFileSync('samples/engineering-rooms-30.xlsx', Buffer.from(roomsToWorkbook(eng.rooms)))
 console.log(`Engineering (4 subjects): ${eng.students.length} students, ${eng.rooms.length} rooms`)
+
+// A full exam day in one file (Session column): morning + evening, same 30 rooms.
+const day = generateTwoSessionSample()
+fs.writeFileSync('samples/two-sessions-students.xlsx', Buffer.from(studentsToWorkbook(day.students)))
+console.log(`Two sessions: ${day.students.length} entries (use engineering-rooms-30.xlsx for rooms)`)
