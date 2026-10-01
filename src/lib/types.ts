@@ -9,6 +9,8 @@ export interface Student {
   paperName?: string
   /** Free text such as "Wheelchair" or "Scribe". Empty/undefined means none. */
   specialNeeds?: string
+  /** Which session of the day the student writes in, when one file covers both sessions. */
+  slot?: Slot
 }
 
 /**
