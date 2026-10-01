@@ -26,7 +26,7 @@ means redoing it by hand.
 ## What SeatWise does
 
 1. **Upload** two files (Excel `.xlsx` or CSV) — or click *Try with sample data*.
-   - Students: roll number, name, course, paper code, special needs (optional)
+   - Students: roll number, name, course, paper code, special needs (optional), session (optional: Morning/Evening)
    - Rooms: room, rows × seats per row (or benches × seats per bench), blocked seats, floor (optional)
    - Downloadable templates explain every column; mistakes get friendly messages like *“Row 14: roll number missing.”*
 2. **Choose the rules**: date, morning/evening, and strictness —
@@ -43,6 +43,9 @@ means redoing it by hand.
 4. **Review** each room as an interactive seat grid: hover or tab to a seat to see the student and highlight the neighbours the rule protects.
 5. **Download** print-ready PDFs and Excel files — or everything as one ZIP.
 6. **Re-plan** after a last-minute change, moving as few students as possible.
+7. **Both sessions in one go** — add a *Session* column (Morning/Evening) to the students file and SeatWise plans
+   the morning and evening sessions together in the same rooms, with a tab for each session and a list of students
+   who write in both.
 
 | Upload | Review a room | Impossible? It says why |
 |---|---|---|
@@ -172,7 +175,7 @@ the average gap in empty seats between a room's rows drops from 1.17 to 1.00.
 At 5,000 students HiGHS reaches 77–89% (pattern: 77–84%), limited by how many
 front-row ground-floor seats the rule allows (see Limitations).
 
-**Tests:** 80 Vitest tests, including property tests that generate **1,200 random
+**Tests:** 88 Vitest tests, including property tests that generate **1,200 random
 sessions** (random room shapes, benches, blocked seats, floors, paper mixes and
 rules) and assert that the checker finds 0 clashes whenever a plan is returned.
 
@@ -196,6 +199,8 @@ npm run dev          # http://localhost:5173
 Sample files you can upload are in [`samples/`](samples) (all names are randomly generated), including
 `engineering-students-1200.xlsx` + `engineering-rooms-30.xlsx`: 1,200 B.Tech Sem 3 students (CSE, ECE, ME, CE) writing
 4 subjects, and 30 rooms. They seat with 0 clashes under all four rules (18 rooms; 22 in Very strict mode).
+`two-sessions-students.xlsx` is a full exam day in one file (with the Session column): 1,200 students in the morning
+and 930 in the evening, 30 of whom write in both — use it with `engineering-rooms-30.xlsx`.
 
 ## Deploy on Vercel
 
@@ -231,7 +236,8 @@ dark themes, and no motion for people who turn on *reduce motion*.
   limits how many front-row, ground-floor seats one paper can use.
 - **“Neighbour” is geometric.** Rooms are rectangular grids; aisles, pillars and odd layouts must be
   approximated with blocked seats. Diagonal and bench rules assume evenly spaced seats.
-- **One session at a time.** It doesn't schedule exams across days or assign invigilators.
+- **One day at a time.** It plans the morning and evening sessions of a day, but doesn't build the exam timetable
+  across days.
 - **Times depend on the computer.** HiGHS stops after 1 s per room and keeps its best plan, so on a slow
   laptop a big room may keep the pattern layout instead (still clash-free).
 - **Browser storage is per device.** Autosave lives only in that browser; use *Save plan file* to move a plan.
