@@ -10,6 +10,7 @@ import { saveFile, XLSX_MIME } from '../lib/download'
 import { REPORT_LIST, type ReportKind } from '../lib/export/catalog'
 import { fileStem, fmt } from '../lib/format'
 import { serialisePlan } from '../lib/io/planFile'
+import { buildPlanView } from '../lib/planView'
 
 type Busy = `${ReportKind}-pdf` | `${ReportKind}-xlsx` | 'zip' | null
 
@@ -48,7 +49,8 @@ export function DownloadStep() {
     })
   const zip = () =>
     guard('zip', async () => {
-      const [{ buildZip }, { buildPlanView }] = await Promise.all([import('../lib/export/bundle'), import('../lib/planView')])
+      // buildPlanView is already loaded (the Review step uses it); only the ZIP code loads here.
+      const { buildZip } = await import('../lib/export/bundle')
       // Both sessions go into one ZIP (a folder each) when the file covered both.
       const all = SLOTS.map((slot) => state.sessionPlans[slot]).filter((p) => p !== undefined)
       const views = all.length > 1 ? all.map((p) => (p === view.plan ? view : buildPlanView(p))) : [view]
