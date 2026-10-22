@@ -164,13 +164,18 @@ export function useStore() {
   return ctx
 }
 
-/** Which steps can be opened right now. */
+/**
+ * Which steps can be opened right now. "Generate" only shows progress or why a plan
+ * failed; it doesn't start anything (that's the button on Rules). So it opens only to
+ * read a failure again: opened at any other time it would sit on "Generating your
+ * plan…" for ever.
+ */
 export function reachableSteps(s: AppState): Set<Step> {
   const ok = new Set<Step>(['upload'])
   const inputsReady = !!s.students?.length && !!s.rooms?.length
   if (inputsReady) {
     ok.add('rules')
-    ok.add('generate')
+    if (s.status === 'failed') ok.add('generate')
   }
   if (s.plan) {
     ok.add('review')

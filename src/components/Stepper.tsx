@@ -10,8 +10,9 @@ export function Stepper() {
       <ol className="flex items-center gap-1 overflow-x-auto pb-1 sm:justify-center sm:gap-2">
         {STEPS.map((step, i) => {
           const active = step === state.step
-          const done = i < currentIndex && reachable.has(step)
-          const enabled = reachable.has(step) && !(step === 'generate' && state.status === 'solving')
+          // Generate counts as done once a plan exists, though it can't be reopened.
+          const done = i < currentIndex && (reachable.has(step) || (step === 'generate' && !!state.plan))
+          const enabled = reachable.has(step) && step !== state.step
           return (
             <li key={step} className="flex items-center gap-1 sm:gap-2">
               {i > 0 && <span className="h-px w-3 bg-slate-300 sm:w-8 dark:bg-slate-700" aria-hidden="true" />}
